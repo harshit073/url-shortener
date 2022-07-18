@@ -1,6 +1,7 @@
 const urlModel = require('../models/urlModel')
 const {isValidRequest, isValidURL, isValid} = require('../validator/validation')
 const shortId = require('shortid')
+const axios = require('axios')
 
 
 const createURL = async function(req, res){
@@ -28,22 +29,41 @@ const createURL = async function(req, res){
             .send({status: false, message: "Enter a valid URL"})
         }
 
-        const isDuplicate = await urlModel.findOne({longUrl: longUrl})
+        let urlFound = false
+
+        let obj = {
+            method: 'get',
+            url: longUrl
+        }
+        await axios(obj).then((res)=>{
+                            if(res.status==201 || res.status==200)
+                            urlFound = true
+                            }).catch((err)=>{})
+                    
+        if(urlFound == false){
+            return res
+                .status(400)
+                .send({status: false, message: "Invalid URL"})
+        }
+
+        const isDuplicate = await urlModel.findOne({longUrl: longUrl}).select({_id:0, __v:0})
         if(isDuplicate){
             return res
-            .status(200)
-            .send({status: true, message: ` ${longUrl} this URL has already been shortened`, data: isDuplicate })
+                .status(200)
+                .send({status: true, message: ` ${longUrl} this URL has already been shortened`, data: isDuplicate })
         }
 
         data.longUrl = longUrl
-        shortUrl = baseURL + Id
+        shortUrl = baseURL + Id.toLocaleLowerCase()
         data.shortUrl = shortUrl
         data.urlCode = Id
 
         const createShortURL = await urlModel.create(data)
+        
         return res
-        .status(201)
-        .send({status: true, data: createShortURL})
+            .status(201)
+            .send({status: true, data: data})
+       
     }
     catch(error){
         return res
@@ -55,7 +75,7 @@ const createURL = async function(req, res){
 const getURL = async function(req, res){
     try{
         let urlCode = req.params.urlCode
-        console.log(typeof urlCode)
+
         if(!shortId.isValid(urlCode)){
             return res
                 .status(400)
@@ -71,7 +91,8 @@ const getURL = async function(req, res){
         let longUrl = url.longUrl
         return  res
             .status(302)
-            .redirect(longUrl) 
+            // .send(`Redirecting to ${longUrl}`)
+            .redirect(longUrl)
     }
     catch(error){
         return res
