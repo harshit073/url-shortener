@@ -5,4 +5,10 @@ const router = express.Router()
 
 router.post('/url/shorten', createURL)
 router.get('/:urlCode', getURL)
+
+router.all("/**", function (req, res) {
+    return res
+      .status(404)
+      .send({ status: false, message: "Invalid HTTP request" });
+  });
 module.exports = router

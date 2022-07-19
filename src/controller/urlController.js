@@ -1,5 +1,5 @@
 const urlModel = require('../models/urlModel')
-const {isValidRequest, isValidURL, isValid} = require('../validator/validation')
+const {isValidRequest, isValidURL, isValidString} = require('../validator/validation')
 const shortId = require('shortid')
 const axios = require('axios')
 
@@ -17,7 +17,7 @@ const createURL = async function(req, res){
         let data = {}
         let shortUrl = ""
         
-        if(!isValid(longUrl)){
+        if(!isValidString(longUrl)){
             return res
             .status(400)
             .send({status: false, message: "Enter a valid URL"})

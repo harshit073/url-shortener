@@ -6,7 +6,7 @@ const isValidRequest = function(data){
     return true
   }
 
-  const isValid = function (value) {
+  const isValidString = function (value) {
     if (typeof value == undefined || value == null) return false;
     if (typeof value == "string" && value.trim().length == 0) return false;
     else if (typeof value == "string") return true;
@@ -19,4 +19,4 @@ const isValidRequest = function(data){
 
   module.exports = {isValidRequest, 
                     isValidURL, 
-                    isValid}
+                    isValidString}
