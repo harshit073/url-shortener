@@ -2,6 +2,24 @@ const urlModel = require('../models/urlModel')
 const {isValidRequest, isValidURL, isValidString} = require('../validator/validation')
 const shortId = require('shortid')
 const axios = require('axios')
+const redis = require('redis')
+const {promisify} = require('util')
+
+
+const redisClient = redis.createClient(
+    15437,
+    "redis-15437.c212.ap-south-1-1.ec2.cloud.redislabs.com",
+    {no_ready_check: true},
+);
+redisClient.auth("OIioxIVC8c1EflsNApUavYHUenEKpHIk", function(err){
+    if (err) throw err;
+});
+redisClient.on("connect", async function(){
+    console.log("connected to Redis")
+});
+
+const SET_ASYNC = promisify(redisClient.SET).bind(redisClient)
+const GET_ASYNC = promisify(redisClient.GET).bind(redisClient)
 
 
 const createURL = async function(req, res){
@@ -45,20 +63,29 @@ const createURL = async function(req, res){
                 .status(400)
                 .send({status: false, message: "Invalid URL"})
         }
-
-        const isDuplicate = await urlModel.findOne({longUrl: longUrl}).select({_id:0, __v:0})
-        if(isDuplicate){
-            return res
-                .status(200)
-                .send({status: true, message: ` ${longUrl} this URL has already been shortened`, data: isDuplicate })
-        }
-
+    
+            // let cachedURL = await GET_ASYNC(`${longUrl}`)
+            // console.log(cachedURL)
+            // if(cachedURL){
+            //     cachedURL = JSON.parse(cachedURL)
+            //     return res.status(409).send({status: true, message: `${longUrl} this URL has already been short`, data: cachedURL})
+            // }else{
+                const isDuplicate = await urlModel.findOne({longUrl: longUrl}).select({_id:0, __v:0})
+                if(isDuplicate){
+                    // await SET_ASYNC(`${isDuplicate.urlCode}`, JSON.stringify(isDuplicate))
+                    return res
+                        .status(409)
+                        .send({status: true, message: ` ${longUrl} this URL has already been shortened`, data: isDuplicate })
+                }
+            // }
+        // }
+      
         data.longUrl = longUrl
         shortUrl = baseURL + Id.toLocaleLowerCase()
         data.shortUrl = shortUrl
         data.urlCode = Id
 
-        const createShortURL = await urlModel.create(data)
+        await urlModel.create(data)
         
         return res
             .status(201)
@@ -66,6 +93,7 @@ const createURL = async function(req, res){
        
     }
     catch(error){
+        console.log(error.message)
         return res
                 .status(500)
                 .send({status: false, message: error.message})
@@ -82,18 +110,25 @@ const getURL = async function(req, res){
                 .send({status: false, message: "Enter a valid urlCode"})
         }
 
-        const url = await urlModel.findOne({urlCode:urlCode})
-        if(!url){
-            return res
-                .status(404)
-                .send({status: false, message: "No URL exists for this code"})
-        }
-        let longUrl = url.longUrl
-        return  res
-            .status(302)
-            // .send(`Redirecting to ${longUrl}`)
-            .redirect(longUrl)
+            let cachedURL = await GET_ASYNC(urlCode)
+            if(cachedURL){
+                cachedURL = JSON.parse(cachedURL)
+               return res.status(307).redirect(cachedURL.longUrl)
+            }else{
+                const urlData = await urlModel.findOne({urlCode:urlCode})
+                if(!urlData){
+                    return res
+                        .status(404)
+                        .send({status: false, message: "No URL exists for this code"})
+                }
+                let longUrl = urlData.longUrl
+                await SET_ASYNC(`${urlCode}`, JSON.stringify(urlData))
+                return  res
+                    .status(307)
+                    .redirect(longUrl)
+            }
     }
+       
     catch(error){
         return res
             .status(500)
