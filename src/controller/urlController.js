@@ -63,7 +63,7 @@ const createURL = async function(req, res){
                 .status(400)
                 .send({status: false, message: "Invalid URL"})
         }
-    
+
             let cachedURL = await GET_ASYNC(`${longUrl}`)
             console.log(cachedURL)
             if(cachedURL){
@@ -110,7 +110,7 @@ const getURL = async function(req, res){
                 cachedURL = JSON.parse(cachedURL)
                return res.status(307).redirect(cachedURL.longUrl)
             }else{
-                const urlData = await urlModel.findOne({urlCode:urlCode})
+                const urlData = await urlModel.findOne({urlCode:urlCode}).select({longUrl:1, shortUrl:1, urlCode:1, _id:0})
                 if(!urlData){
                     return res
                         .status(404)
