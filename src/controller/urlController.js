@@ -53,28 +53,11 @@ const createURL = async function(req, res){
             .send({status: false, message: "Enter a valid URL"})
         }
 
-        let urlFound = false
-
-        //checking accessibility of long url
-        let obj = {
-            method: 'get',
-            url: longUrl
-        }
-        await axios(obj).then((res)=>{
-                            if(res.status==201 || res.status==200)
-                            urlFound = true
-                            }).catch((err)=>{})
-                    
-        if(urlFound == false){
-            return res
-                .status(400)
-                .send({status: false, message: "Invalid URL"})
-        }
             //earching for duplicacy of long url in cache memory
             let cachedURL = await GET_ASYNC(`${longUrl}`)
-            console.log(cachedURL)
             //cache hit case
             if(cachedURL){
+                console.log(cachedURL)
                 cachedURL = JSON.parse(cachedURL)
                 return res.status(409).send({status: false, message: `${longUrl} this URL has already been shortened`, data: cachedURL})
             }else{
@@ -86,7 +69,25 @@ const createURL = async function(req, res){
                         .status(409)
                         .send({status: false, message: `${longUrl} this URL has already been shortened`, data: isDuplicate})
                 }
-            }   
+            }
+
+            let urlFound = false
+
+            // checking accessibility of long url
+            let obj = {
+                method: 'get',
+                url: longUrl
+            }
+            await axios(obj).then((res)=>{
+                                if(res.status==201 || res.status==200)
+                                urlFound = true
+                                }).catch((err)=>{})
+                        
+            if(urlFound == false){
+                return res
+                    .status(400)
+                    .send({status: false, message: "Invalid URL"})
+            }
             //creating new data if check for duplicacy fails
                 data.longUrl = longUrl
                 shortUrl = baseURL + Id.toLocaleLowerCase()
