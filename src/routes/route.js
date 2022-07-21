@@ -5,6 +5,7 @@ const router = express.Router()
 router.post('/url/shorten', createURL)
 router.get('/:urlCode', getURL)
 
+//Validating the endpoint
 router.all("/*", function (req, res) {
     return res
       .status(404)
