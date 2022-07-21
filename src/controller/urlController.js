@@ -70,18 +70,22 @@ const createURL = async function(req, res){
                 cachedURL = JSON.parse(cachedURL)
                 return res.status(409).send({status: true, message: `${longUrl} this URL has already been shortened`, data: cachedURL})
             }else{
+                const isDuplicate = await urlModel.findOne({longUrl:longUrl}).select({longUrl:1, shortUrl:1, urlCode:1, _id:0})
+                if(isDuplicate){
+                    return res
+                        .status(409)
+                        .send({status: true, message: `${longUrl} this URL has already been shortened`, data: isDuplicate})
+                }
+            }
                 data.longUrl = longUrl
                 shortUrl = baseURL + Id.toLocaleLowerCase()
                 data.shortUrl = shortUrl
                 data.urlCode = Id
-               let createURL =  await urlModel.create(data)
-
-                await SET_ASYNC(`${createURL.urlCode}`, JSON.stringify(data))
-                await SET_ASYNC(`${createURL.longUrl}`, JSON.stringify(data))
+                await urlModel.create(data)
                 return res
                     .status(201)
                     .send({status: true, data: data})
-                }
+                
             }
     catch(error){
         console.log(error.message)
@@ -116,6 +120,7 @@ const getURL = async function(req, res){
 
                 //saving data in cache in key-value pair
                 await SET_ASYNC(`${urlCode}`, JSON.stringify(urlData))
+                await SET_ASYNC(`${longUrl}`, JSON.stringify(urlData))
                 return  res
                     .status(307)
                     .redirect(longUrl)
