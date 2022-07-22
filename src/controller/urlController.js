@@ -59,15 +59,15 @@ const createURL = async function(req, res){
             if(cachedURL){
                 console.log(cachedURL)
                 cachedURL = JSON.parse(cachedURL)
-                return res.status(409).send({status: false, message: `${longUrl} this URL has already been shortened`, data: cachedURL})
+                return res.status(200).send({status: true, message: `${longUrl} this URL has already been shortened`, data: cachedURL})
             }else{
                 // cache miss case
                 //searching for duplicacy of long url in database
                 const isDuplicate = await urlModel.findOne({longUrl:longUrl}).select({longUrl:1, shortUrl:1, urlCode:1, _id:0})
                 if(isDuplicate){
                     return res
-                        .status(409)
-                        .send({status: false, message: `${longUrl} this URL has already been shortened`, data: isDuplicate})
+                        .status(200)
+                        .send({status: true, message: `${longUrl} this URL has already been shortened`, data: isDuplicate})
                 }
             }
 
